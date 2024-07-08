@@ -1,3 +1,4 @@
+import jwt
 from rest_framework import serializers
 from .models import UserModel
 
@@ -12,5 +13,5 @@ class UserSerializer(serializers.ModelSerializer):
             instance.profile_id = validated_data['profile_id']
         else:
             instance.profile_id = f"user{instance.pk}"
-            instance.save()
+        instance.save()
         return instance
