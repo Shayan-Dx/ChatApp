@@ -4,9 +4,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
 from django.conf import settings
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError
 
-from .models import UserModel
-from .serializers import UserSerializer
+from .models import UserModel, MessageModel
+from .serializers import UserSerializer, MessageSerializer
 from .authentication import JWTAuthentication
 
 import jwt
@@ -67,5 +71,58 @@ class UserProfileView(APIView):
             payload = {'phone_number': phone_number, 'profile_id': profile_id}
             token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
-            return Response({'Profile': serializer.data, 'token': token, 'status': 'Profile Updated! Please Consider Using The New JWT Token.)'})
+            return Response({'Profile': serializer.data, 'token': token, 'status': 'Profile Updated! Please Consider Using The New JWT Token.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class ChatView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, profile_id):
+        try:
+            user = request.user
+            other_user = get_object_or_404(UserModel, profile_id=profile_id)
+            
+            if user == other_user:
+                return Response({'error': 'Attention: You are messaging yourself'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            messages = MessageModel.objects.filter(
+                (Q(sender=user) & Q(receiver=other_user)) |
+                (Q(sender=other_user) & Q(receiver=user))
+            ).order_by('timestamp')
+            
+            serializer = MessageSerializer(messages, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except UserModel.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request, profile_id):
+        try:
+            user = request.user
+            receiver = get_object_or_404(UserModel, profile_id=profile_id)
+            
+            if user == receiver:
+                return Response({'error': 'Attention: You are messaging yourself'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            data = {
+                'sender': user.id,
+                'receiver': receiver.id,
+                'content': request.data.get('content')
+            }
+            serializer = MessageSerializer(data=data)
+            if serializer.is_valid():
+                message = serializer.save()
+                response_data = serializer.data
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        except UserModel.DoesNotExist:
+            return Response({'error': 'Receiver not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

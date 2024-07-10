@@ -1,6 +1,6 @@
 import jwt
 from rest_framework import serializers
-from .models import UserModel
+from .models import UserModel, MessageModel
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,3 +15,20 @@ class UserSerializer(serializers.ModelSerializer):
             instance.profile_id = f"user{instance.pk}"
         instance.save()
         return instance
+    
+class MessageSerializer(serializers.ModelSerializer):
+    sender_profile_id = serializers.CharField(source='sender.profile_id', read_only=True)
+    receiver_profile_id = serializers.CharField(source='receiver.profile_id', read_only=True)
+    sender = serializers.PrimaryKeyRelatedField(queryset=UserModel.objects.all(), write_only=True)
+    receiver = serializers.PrimaryKeyRelatedField(queryset=UserModel.objects.all(), write_only=True)
+
+    class Meta:
+        model = MessageModel
+        fields = ['sender', 'receiver', 'content', 'timestamp', 'sender_profile_id', 'receiver_profile_id']
+        read_only_fields = ['sender_profile_id', 'receiver_profile_id']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation.pop('sender', None)
+        representation.pop('receiver', None)
+        return representation
