@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -59,6 +60,7 @@ class VerifyPhoneNumberView(APIView):
 class UserProfileView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request):
         user = request.user
@@ -74,8 +76,7 @@ class UserProfileView(APIView):
             profile_id = user.profile_id
             payload = {'phone_number': phone_number, 'profile_id': profile_id}
             token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
-
-            return Response({'Profile': serializer.data, 'token': token, 'status': 'Profile Updated! Please Consider Using The New JWT Token.'})
+            return Response({'Profile': serializer.data, 'token': token, 'status': 'Profile Updated! Please consider using the new JWT token.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
