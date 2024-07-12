@@ -24,11 +24,4 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MessageModel
-        fields = ['sender', 'receiver', 'content', 'timestamp', 'sender_profile_id', 'receiver_profile_id']
-        read_only_fields = ['sender_profile_id', 'receiver_profile_id']
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation.pop('sender', None)
-        representation.pop('receiver', None)
-        return representation
+        fields = ['sender', 'receiver', 'content', 'timestamp', 'attachment', 'sender_profile_id', 'receiver_profile_id']
