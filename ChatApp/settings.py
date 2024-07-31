@@ -42,14 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Messenger_API',
+    'Users',
 ]
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'Messenger_API.authentication.JWTAuthentication',
-    ),
-}
-
 
 
 ASGI_APPLICATION = 'ChatApp.asgi.application'
