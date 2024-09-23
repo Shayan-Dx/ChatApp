@@ -8,9 +8,9 @@ from django.db.models import Q
 
 from .models import MessageModel
 from .serializers import MessageSerializer
-from .authentication import JWTAuthentication
 
 from Users.models import UserModel
+from Users.authentication import JWTAuthentication
 
 
 class ChatView(APIView):
