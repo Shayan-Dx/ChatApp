@@ -29,7 +29,17 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# Application definition
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('localhost', 6379)],
+        },
+    },
+}
+
+
 
 INSTALLED_APPS = [
     'daphne',
@@ -47,6 +57,7 @@ INSTALLED_APPS = [
 
 
 ASGI_APPLICATION = 'ChatApp.asgi.application'
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
