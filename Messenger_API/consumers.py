@@ -1,3 +1,5 @@
+# consumers.py
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -6,18 +8,28 @@ from Users.models import UserModel
 from .models import MessageModel
 from django.db.utils import IntegrityError
 
-# A dictionary to keep track of connected users and their channel names
+# Dictionary to store unsent messages for users
+unsent_messages = {}
+
+# Dictionary to keep track of connected users and their channel names
 connected_users = {}
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.receiver_profile_id = self.scope['url_route']['kwargs']['profile_id']
         self.receiver_user = await self.get_user_by_profile_id(self.receiver_profile_id)
-        
+
         if self.receiver_user:
             self.sender_user = self.scope['user']
             connected_users[self.sender_user.profile_id] = self.channel_name
             await self.accept()
+
+            # Check if there are any unsent messages for the receiver and send them
+            if self.sender_user.profile_id in unsent_messages:
+                for message in unsent_messages[self.sender_user.profile_id]:
+                    await self.send(text_data=json.dumps(message))
+                # Clear the unsent messages for this receiver after sending
+                del unsent_messages[self.sender_user.profile_id]
         else:
             await self.send(text_data=json.dumps({'error': 'User not found.'}))
             await self.close()
@@ -88,6 +100,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'message': message_data,
                 }
             )
+        else:
+            # Store unsent message in memory for later delivery
+            if receiver_profile_id not in unsent_messages:
+                unsent_messages[receiver_profile_id] = []
+            unsent_messages[receiver_profile_id].append(message_data)
 
     async def chat_message(self, event):
         message = event['message']
