@@ -42,7 +42,6 @@ CHANNEL_LAYERS = {
 
 
 INSTALLED_APPS = [
-    'daphne',
     'rest_framework',
     'rest_framework_jwt',
     'django.contrib.admin',
@@ -53,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Messenger_API',
     'Users',
+    'channels',
 ]
 
 

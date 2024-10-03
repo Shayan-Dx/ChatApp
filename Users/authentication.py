@@ -30,3 +30,25 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
     def authenticate_header(self, request):
         return 'Bearer'
+    
+    def decode_jwt(self, token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('Token has expired.')
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed('Invalid token.')
+        
+def get_user_from_payload(payload):
+    from Users.models import UserModel
+    profile_id = payload.get('profile_id')  # Using profile_id in the token payload
+    if not profile_id:
+        raise AuthenticationFailed('Token payload does not contain a profile_id.')
+
+    try:
+        user = UserModel.objects.get(profile_id=profile_id)
+    except UserModel.DoesNotExist:
+        raise AuthenticationFailed('User not found for given token payload.')
+
+    return user
