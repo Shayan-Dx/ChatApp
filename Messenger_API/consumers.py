@@ -1,11 +1,11 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from datetime import datetime
+from django.utils import timezone  # Using timezone.now() instead of datetime.now()
 from Users.models import UserModel
 from .models import MessageModel
 from django.db.utils import IntegrityError
-from django.db.models import Q  # Import Q
+from django.db.models import Q
 
 # A dictionary to keep track of connected users and their channel names
 connected_users = {}
@@ -25,12 +25,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({'chat_history': chat_history}))
         else:
             await self.send(text_data=json.dumps({'error': 'User not found.'}))
-            await self.close()  # Fixed syntax here
+            await self.close()  # Ensure proper closing if user is not found
 
     async def disconnect(self, close_code):
         if self.sender_user and self.sender_user.profile_id in connected_users:
+            # Ensure proper cleanup when a user disconnects
             del connected_users[self.sender_user.profile_id]
-        pass
 
     async def receive(self, text_data):
         try:
@@ -49,13 +49,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     message = await self.save_message(sender, self.receiver_user, content)
                     await self.send_message_to_receiver(message, self.receiver_user.profile_id)
                     
-                    # Send a confirmation to the sender without the detailed report
+                    # Send a confirmation to the sender
                     await self.send(text_data=json.dumps({'status': 'Message sent successfully.'}))
                 except IntegrityError:
                     await self.send(text_data=json.dumps({'error': 'Failed to save message.'}))
+                except Exception as e:
+                    await self.send(text_data=json.dumps({'error': f'Unexpected error: {str(e)}'}))
             else:
                 await self.send(text_data=json.dumps({'error': 'Receiver not found.'}))
-                await self.close()  # Fixed syntax here
+                await self.close()  # Ensure proper closing if receiver is not found
 
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({'error': 'Invalid message format.'}))
@@ -73,7 +75,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=sender,
             receiver=receiver,
             content=content,
-            timestamp=datetime.now()
+            timestamp=timezone.now()  # Use timezone-aware timestamp
         )
 
     @database_sync_to_async
