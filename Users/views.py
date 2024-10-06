@@ -3,7 +3,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.pagination import PageNumberPagination
 
+from django.db.models import Q
 from django.conf import settings
 
 from .models import UserModel
@@ -12,6 +14,11 @@ from .authentication import JWTAuthentication
 
 import jwt
 
+
+class UserPagination(PageNumberPagination):
+    page_size = 10  # Default number of users per page
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class VerifyPhoneNumberView(APIView):
     def post(self, request):
@@ -112,6 +119,35 @@ class UserSearchView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class UserListView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    pagination_class = UserPagination
+
+    def get(self, request):
+        try:
+            query = request.query_params.get('query', None)
+            order = request.query_params.get('order', 'first_name')
+
+            # Fetch all users
+            users = UserModel.objects.all().order_by(order)
+
+            # Apply search filter if a query is provided
+            if query:
+                users = users.filter(
+                    Q(profile_id__icontains=query) | Q(phone_number__icontains=query)
+                )
+
+            # Apply pagination
+            paginator = UserPagination()
+            paginated_users = paginator.paginate_queryset(users, request)
+            serializer = UserSerializer(paginated_users, many=True)
+
+            return paginator.get_paginated_response(serializer.data)
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
