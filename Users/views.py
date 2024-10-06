@@ -23,36 +23,48 @@ class VerifyPhoneNumberView(APIView):
             try:
                 user = UserModel.objects.get(phone_number=phone_number)
                 serializer = UserSerializer(user)
-                payload = {'phone_number': phone_number,
-                           'profile_id': profile_id or f"user{user.pk}"}
-                token = jwt.encode(
-                    payload, settings.SECRET_KEY, algorithm='HS256')
+
+                # Use the existing profile ID from the user if available
+                payload = {
+                    'phone_number': phone_number,
+                    'profile_id': user.profile_id  # Use the user's stored profile_id
+                }
+
+                token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
                 return Response({'user': serializer.data, 'token': token, 'status': 'Login Successful'})
+
             except UserModel.DoesNotExist:
+                # If the user doesn't exist, create a new account
                 serializer = UserSerializer(data=request.data)
                 if serializer.is_valid():
                     serializer.save()
-                    payload = {'phone_number': phone_number,
-                               'profile_id': profile_id or f"user{serializer.instance.pk}"}
-                    token = jwt.encode(
-                        payload, settings.SECRET_KEY, algorithm='HS256')
+
+                    # Use the provided custom profile ID, or generate a new one
+                    payload = {
+                        'phone_number': phone_number,
+                        'profile_id': profile_id or f"user{serializer.instance.pk}"
+                    }
+
+                    token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
                     return Response({'user': serializer.data, 'token': token, 'status': 'Account Has Been Created'})
                 else:
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         elif not phone_number:
             return Response({'error': 'Phone Number field must NOT be blank'})
         elif not phone_number.isdigit():
             return Response({'error': 'Phone Number format is invalid'})
-        elif len(phone_number) < 11 or len(phone_number) > 11:
+        elif len(phone_number) != 11:
             return Response({'error': 'Enter the correct format of phone number'})
         elif not otp:
             return Response({'error': 'OTP field must NOT be blank'})
         elif not otp.isdigit():
             return Response({'error': 'OTP format is invalid'})
-        elif len(otp) < 5 or len(otp) > 5:
-            return Response({'error': 'Enter the correct format of otp'})
+        elif len(otp) != 5:
+            return Response({'error': 'Enter the correct format of OTP'})
         else:
             return Response({'error': 'Something went wrong'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class UserProfileView(APIView):
