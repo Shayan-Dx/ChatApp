@@ -11,4 +11,4 @@ things that you need to pay attention to :
 1-make sure to create an .env file and include these variables in it:
 SECRET_KEY (django secret key)
 DATABASE VARIABLES (such as name - username - password - host - port)
-2-make sure to use the command (docker-compose exec web python manage.py createsuperuser) to create an superuser to access the database
+2-make sure to use the command (docker-compose exec web python manage.py createsuperuser) to create an superuser to access the admin page
