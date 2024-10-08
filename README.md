@@ -12,3 +12,8 @@ things that you need to pay attention to :
 SECRET_KEY (django secret key)
 DATABASE VARIABLES (such as name - username - password - host - port)
 2-make sure to use the command (docker-compose exec web python manage.py createsuperuser) to create an superuser to access the admin page
+3-make sure to create a new secret key for the project and include it in the .env file using:
+py manage.py shell
+from django.core.management.utils import get_random_secret_key
+print(get_random_secret_key())
+and paste the secret key in the .env file just like the template (.env.example)
