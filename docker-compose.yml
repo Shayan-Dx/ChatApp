@@ -4,9 +4,10 @@ services:
   web:
     build: .
     command: >
-      sh -c "python manage.py migrate && daphne -p 8000 -b 0.0.0.0 ChatApp.asgi:application"
+      sh -c "python manage.py migrate && python manage.py collectstatic --noinput && daphne -p 8000 -b 0.0.0.0 ChatApp.asgi:application"
     volumes:
       - .:/code
+      - ./staticfiles:/code/staticfiles  # <-- Add this to map the static files directory
     ports:
       - "8000:8000"
     depends_on:
